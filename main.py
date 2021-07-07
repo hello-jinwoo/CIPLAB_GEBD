@@ -193,18 +193,18 @@ if __name__ == '__main__':
             print(f"sigma: {s}")
 
             val_dict = {}
-            k = 3
+            k = GAUSSIAN_KERNEL
             gaussian_filter = torch.FloatTensor(
                 [np.exp(-z*z/(2*s*s))/np.sqrt(2*np.pi*s*s) for z in range(-k, k+1)]
             ).to(device)
             gaussian_filter = gaussian_filter.unsqueeze(0).unsqueeze(0)
             gaussian_filter /= torch.max(gaussian_filter)
             gaussian_filter = gaussian_filter.repeat(1, FEATURE_LEN, 1)
-            max_pooling = nn.MaxPool1d(5, stride=1, padding=2)
+            max_pooling = nn.MaxPool1d(MAX_POOL_KERNEL, stride=1, padding=MAX_POOL_KERNEL // 2)
 
             for j, (feature, filenames, durations) in enumerate(tqdm(validation_dataloader)):
-                if j < len(validation_dataloader) - 2:
-                    continue
+                # if j < len(validation_dataloader) - 2:
+                #     continue
                 feature = feature.to(device)
                 with torch.no_grad():
                     pred1, pred2, _, _, _ = network(feature)
@@ -219,6 +219,8 @@ if __name__ == '__main__':
                         out = nn.functional.conv1d(out, gaussian_filter, padding=k)
                     else:
                         out = pred.unsqueeze(1)
+                    # print(out.shape)
+                    # print(out)
 
                     peak = (out == max_pooling(out))
                     peak[out < THRESHOLD] = False
@@ -237,6 +239,9 @@ if __name__ == '__main__':
                 for i, boundary in enumerate(boundary_list):
                     filename = filenames[i]
                     val_dict[filename] = boundary
+
+
+
             val_dicts[s] = val_dict
             f1, prec, rec = validate(val_dict)
             f1_results[s] = f1
@@ -271,14 +276,14 @@ if __name__ == '__main__':
             
             test_dict = {}
             test_prob_dict = {}
-            k = 3
+            k = GAUSSIAN_KERNEL
             gaussian_filter = torch.FloatTensor(
                 [np.exp(-z*z/(2*s*s))/np.sqrt(2*np.pi*s*s) for z in range(-k, k+1)]
             ).to(device)
             gaussian_filter = gaussian_filter.unsqueeze(0).unsqueeze(0)
             gaussian_filter /= torch.max(gaussian_filter)
             gaussian_filter = gaussian_filter.repeat(1, FEATURE_LEN, 1)
-            max_pooling = nn.MaxPool1d(5, stride=1, padding=2)
+            max_pooling = nn.MaxPool1d(MAX_POOL_KERNEL, stride=1, padding=MAX_POOL_KERNEL // 2)
             
             for feature, filenames, durations in test_dataloader:
                 feature = feature.to(device)
@@ -305,6 +310,7 @@ if __name__ == '__main__':
                 durations = durations.numpy()
 
                 boundary_list = [[] for _ in range(len(out))]
+
                 for i, j in idx:
                     duration = durations[i]
                     first = TIME_UNIT/2
@@ -314,6 +320,8 @@ if __name__ == '__main__':
                     filename = filenames[i]
                     test_dict[filename] = boundary
                     test_prob_dict[filename] = out[i]
+
+                
 
             with open(f'results/test_' + description + str(max_value)[2:6] + '.pkl', 'wb') as f:
                 pickle.dump(test_dict, f)
