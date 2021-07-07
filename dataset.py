@@ -80,47 +80,32 @@ def get_boundaries(video_annotation, interpolation=False):
     return event_boundaries, shot_boundaries, whole_boundaries
 
 class Kinetics_GEBD_train(Dataset):
-    def __init__(self, n_fold):
-        with open(ANNOTATION_PATH, 'rb') as f:
+    def __init__(self, n_fold=0):
+        with open(TRAIN_ANNOTATION_PATH, 'rb') as f:
             self.annotations = pickle.load(f)
-        with open(FILE_LIST, 'rb') as f:
-            self.filenames = pickle.load(f)[n_fold]['train']
+        # with open(FILE_LIST, 'rb') as f:
+        #     self.filenames = pickle.load(f)[n_fold]['train']
+        self.filenames = os.listdir(TRAIN_DATA_PATH)
 
     def __len__(self):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-        tmp_interpolation = random.randint(0,10000)
-
-        if tmp_interpolation < 10000*INTERPOLATION_PROB:
-            path1 = os.path.join(DATA_PATH_2, self.filenames[idx])
-            f1 = torch.from_numpy(np.load(path1)).float()
-            vid1_annotation = self.annotations[self.filenames[idx]]
-            event1, shot1, whole1 = get_boundaries(vid1_annotation, interpolation=True)
-        else:
-            path1 = os.path.join(DATA_PATH, self.filenames[idx])
-            f1 = torch.from_numpy(np.load(path1)).float()
-            vid1_annotation = self.annotations[self.filenames[idx]]
-            event1, shot1, whole1 = get_boundaries(vid1_annotation)
-
-        
+        path1 = os.path.join(TRAIN_DATA_PATH, self.filenames[idx])
+        f1 = torch.from_numpy(np.load(path1)).float()
+        vid1_annotation = self.annotations[self.filenames[idx]]
+        event1, shot1, whole1 = get_boundaries(vid1_annotation)
         
         #glueing
         tmp = random.randint(0,10000)
         if tmp < 10000*GLUE_PROB:
             rand_idx = random.randint(0, self.__len__()-1)
             glue_point = random.randint(FEATURE_LEN // 4, (FEATURE_LEN // 4) * 3)
-            
-            if tmp_interpolation < 10000*INTERPOLATION_PROB:
-                path2 = os.path.join(DATA_PATH_2, self.filenames[rand_idx])
-                f2 = torch.from_numpy(np.load(path2)).float()
-                vid2_annotation = self.annotations[self.filenames[rand_idx]]
-                event2, shot2, whole2 = get_boundaries(vid2_annotation, interpolation=True)
-            else:
-                path2 = os.path.join(DATA_PATH, self.filenames[rand_idx])
-                f2 = torch.from_numpy(np.load(path2)).float()
-                vid2_annotation = self.annotations[self.filenames[rand_idx]]
-                event2, shot2, whole2 = get_boundaries(vid2_annotation)
+
+            path2 = os.path.join(TRAIN_DATA_PATH, self.filenames[rand_idx])
+            f2 = torch.from_numpy(np.load(path2)).float()
+            vid2_annotation = self.annotations[self.filenames[rand_idx]]
+            event2, shot2, whole2 = get_boundaries(vid2_annotation)
 
             f = torch.cat((f1[:glue_point], f2[glue_point:]), dim=0)
             event_boundaries = torch.cat((event1[:, :glue_point], event2[:, glue_point:]), dim=1)
@@ -136,17 +121,18 @@ class Kinetics_GEBD_train(Dataset):
         return f, event_boundaries, shot_boundaries, whole_boundaries
 
 class Kinetics_GEBD_validation(Dataset):
-    def __init__(self, n_fold):
-        with open(ANNOTATION_PATH, 'rb') as f:
+    def __init__(self, n_fold=0):
+        with open(VAL_ANNOTATION_PATH, 'rb') as f:
             self.annotations = pickle.load(f)
-        with open(FILE_LIST, 'rb') as f:
-            self.filenames = pickle.load(f)[n_fold]['validation']
+        # with open(FILE_LIST, 'rb') as f:
+        #     self.filenames = pickle.load(f)[n_fold]['validation']
+        self.filenames = os.listdir(VAL_DATA_PATH)
 
     def __len__(self):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-        path = os.path.join(DATA_PATH, self.filenames[idx])
+        path = os.path.join(VAL_DATA_PATH, self.filenames[idx])
         duration = self.annotations[self.filenames[idx]]['video_duration']
         f = torch.from_numpy(np.load(path)).float()
         return f, self.filenames[idx], duration
@@ -165,5 +151,3 @@ class Kinetics_GEBD_test(Dataset):
         duration = self.video_durations[self.filenames[idx]]['video_duration']
         f = torch.from_numpy(np.load(path)).float()
         return f, self.filenames[idx], duration
-
-

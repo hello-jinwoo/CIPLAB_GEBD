@@ -1,13 +1,15 @@
 import pickle
 import numpy as np
 from config import *
+import os
 
-def validate(pred_dict, n_fold):
+def validate(pred_dict, n_fold=0):
     # load GT files
-    with open(ANNOTATION_PATH, 'rb') as f:
+    with open(VAL_ANNOTATION_PATH, 'rb') as f:
         gt_dict = pickle.load(f, encoding='lartin1')
-    with open(FILE_LIST, 'rb') as f:
-        filenames = pickle.load(f)[n_fold]['validation']   
+    # with open(FILE_LIST, 'rb') as f:
+    #     filenames = pickle.load(f)[n_fold]['validation']   
+    filenames = os.listdir(VAL_DATA_PATH)
     # recall precision f1 for threshold 0.05(5%)
     threshold = 0.05
     tp_all = 0

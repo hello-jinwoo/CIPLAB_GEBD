@@ -79,7 +79,7 @@ def get_direct_logit_transformer(out_list, feature_reduction, positional_encodin
     out = torch.cat(tmp_list, dim=1).detach()
     # out = torch.cat(tmp_list, dim=1)
     reduced_feature = positional_encoding(torch.relu(feature_reduction(out).permute(2,0,1)))
-    out = final_head(transformer(reduced_feature).permute(1,2,0)).squeeze()
+    out = final_head(transformer(reduced_feature).permute(1,2,0)).squeeze(dim=1)
     return out
     #B,C,L
 
@@ -289,7 +289,7 @@ class SJNET(nn.Module):
         x = self.conv2d(x)
         tsm_score = torch.diagonal(x, dim1=2, dim2=3)
         tsm_score = self.tsm_decoder(tsm_score)
-        tsm_score = self.tsm_out(tsm_score).squeeze()
+        tsm_score = self.tsm_out(tsm_score).squeeze(dim=1)
         return tsm_score, direct_score, event_tsm, shot_tsm, whole_tsm
 
     def get_tsm(self, x):
